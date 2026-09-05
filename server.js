@@ -6,6 +6,12 @@ const PORT = 3000;
 // Sample certificate
 const certificates = [
     {
+    certificateNumber: "CERT-2026-3219",
+    name: "Atsaga Rejoice",
+    course: "Public speaking and mastery class",
+    dateIssued: "September 2, 2026"
+    },  
+    {
         certificateNumber: "CERT-2026-1432",
         name: "Ajaja Olusanya",
         course: "Advanced Women in Leadership",
