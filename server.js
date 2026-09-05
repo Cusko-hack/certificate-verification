@@ -10,7 +10,13 @@ const certificates = [
     name: "Atsaga Rejoice",
     course: "Public speaking and mastery class",
     dateIssued: "September 2, 2026"
-    },  
+    },
+    {
+    certificateNumber: "CERT-2026-3211",
+    name: "Aminu",
+    course: "Public speaking and mastery class",
+    dateIssued: "September 2, 2026"
+    },
     {
         certificateNumber: "CERT-2026-1432",
         name: "Ajaja Olusanya",
