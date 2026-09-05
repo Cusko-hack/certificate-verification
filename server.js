@@ -755,7 +755,7 @@ app.get("/qrcode/:certificateNumber", async (req, res) => {
     const QRCode = require("qrcode");
 
     const verificationURL =
-        `http://localhost:${PORT}/verify?certificateNumber=${certificateNumber}`;
+    `https://certificate-verification-m7bw.onrender.com/verify?certificateNumber=${certificateNumber}`;
 
     try {
 
