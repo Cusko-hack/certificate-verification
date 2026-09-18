@@ -751,7 +751,11 @@ const certificate = result.rows[0];
                                 </div>
 
                                 <div class="value">
-                                    ${certificate.Date_issued}
+                                    ${new Date(certificate.Date_issued).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+})}
                                 </div>
 
                             </div>
