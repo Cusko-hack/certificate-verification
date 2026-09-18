@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const { Pool } = require("pg");
+const session = require("express-session");
 
 const pool = new Pool({
     host: process.env.DB_HOST,
@@ -61,7 +62,17 @@ pool.query("SELECT NOW()", (err, result) => {
 
 const app = express();
 app.use(express.json());
-app.post("/admin/create-certificate", async (req, res) => {
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+}
+}));
+app.post("/admin/create-certificate", requireAdmin, async (req, res) => {
     try {
         const { name, course, startDate, endDate } = req.body;
 
@@ -111,7 +122,51 @@ app.post("/admin/create-certificate", async (req, res) => {
         });
     }
 });
-app.get("/admin", (req, res) => {
+app.get("/login", (req, res) => {
+    res.sendFile(__dirname + "/login.html");
+});
+app.get("/logout", (req, res) => {
+
+    req.session.destroy(() => {
+        res.redirect("/login");
+    });
+
+});
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (
+        username === process.env.ADMIN_USERNAME &&
+        password === process.env.ADMIN_PASSWORD
+    ) {
+        req.session.isAdmin = true;
+
+        return res.json({
+            success: true
+        });
+    }
+
+    res.json({
+        success: false
+    });
+});
+function requireAdmin(req, res, next) {
+
+    if (!req.session.isAdmin) {
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized"
+        });
+    }
+
+    next();
+}
+app.get("/admin", requireAdmin, (req, res) => {
+
+    if (!req.session.isAdmin) {
+        return res.redirect("/login");
+    }
+
     res.sendFile(__dirname + "/admin.html");
 });
 const PORT = 3000;

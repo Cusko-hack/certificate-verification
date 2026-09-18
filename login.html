@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Staff Login | Leadership & Innovation Academy</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f8f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            width: 100%;
+            max-width: 430px;
+            padding: 40px;
+            border-radius: 18px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.10);
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            object-fit: contain;
+        }
+
+        h1 {
+            margin: 0;
+            color: #0b6b3a;
+            font-size: 27px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin: 10px 0 30px;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 9px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #0b6b3a;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            background: #0b6b3a;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #095a31;
+        }
+
+        .footer {
+            margin-top: 25px;
+            font-size: 13px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card">
+
+        <h1>Staff Login</h1>
+
+        <p class="subtitle">
+            Certificate Management Portal
+        </p>
+
+        <form>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="Enter username"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+
+                <div style="position: relative;">
+    <input
+        type="password"
+        id="password"
+        placeholder="Enter password"
+        required
+        style="padding-right: 45px;"
+    >
+
+    <button
+        type="button"
+        id="togglePassword"
+        style="
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 5px;
+            background: none;
+            color: #555;
+            font-size: 18px;
+        "
+        aria-label="Show password"
+    >
+        👁️
+    </button>
+</div>
+            </div>
+
+            <button type="submit">
+                Login
+            </button>
+
+        </form>
+
+        <div class="footer">
+            Leadership & Innovation Academy
+        </div>
+
+    </div>
+<script>
+    const form = document.querySelector("form");
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = "/admin";
+        } else {
+            alert("Invalid username or password.");
+        }
+    });
+    const passwordInput = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", function () {
+
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        togglePassword.textContent = "🙈";
+        togglePassword.setAttribute("aria-label", "Hide password");
+    } else {
+        passwordInput.type = "password";
+        togglePassword.textContent = "👁️";
+        togglePassword.setAttribute("aria-label", "Show password");
+    }
+
+});
+</script>
+</body>
+
+</html>
