@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
 const session = require("express-session");
-
+const PDFDocument = require("pdfkit");
 const pool = new Pool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -168,6 +168,42 @@ app.get("/admin", requireAdmin, (req, res) => {
     }
 
     res.sendFile(__dirname + "/admin.html");
+});
+app.get("/admin/certificates", requireAdmin, (req, res) => {
+    res.sendFile(__dirname + "/certificates.html");
+});
+app.get("/admin/certificates-data", requireAdmin, async (req, res) => {
+
+    try {
+
+        const result = await pool.query(
+            `SELECT
+                id,
+                certificate_number,
+                name,
+                "course/programme",
+                programme_start_date,
+                "Date_issued"
+             FROM "LIA certificate verification"
+             ORDER BY id DESC`
+        );
+
+        res.json({
+            success: true,
+            certificates: result.rows
+        });
+
+    } catch (error) {
+
+        console.error("Failed to load certificates:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to load certificates."
+        });
+
+    }
+
 });
 const PORT = 3000;
 
@@ -982,8 +1018,8 @@ const certificate = result.rows[0];
                     width="300"
                 >
             <a
-                href="${qrCode}"
-                download="${certificate.certificate_number}-QR.png"
+                <a
+                    href="/qrcode-pdf/${certificate.certificate_number}"
                 style="
                     display:inline-block;
                     margin-top:20px;
@@ -1016,7 +1052,132 @@ const certificate = result.rows[0];
     }
 
 });
+app.get("/qrcode-pdf/:certificateNumber", async (req, res) => {
 
+    try {
+
+        const certificateNumber = req.params.certificateNumber;
+
+        const result = await pool.query(
+            `SELECT * FROM "LIA certificate verification"
+             WHERE certificate_number = $1`,
+            [certificateNumber]
+        );
+
+        const certificate = result.rows[0];
+
+        if (!certificate) {
+            return res.status(404).send("Certificate not found.");
+        }
+
+        const QRCode = require("qrcode");
+
+        const verificationURL =
+            `https://certificate-verification-m7bw.onrender.com/verify?certificateNumber=${certificateNumber}`;
+
+        const qrBuffer = await QRCode.toBuffer(verificationURL, {
+            type: "png",
+            width: 500,
+            margin: 2
+        });
+
+        const doc = new PDFDocument({
+            size: "A4",
+            margin: 50
+        });
+
+        res.setHeader(
+            "Content-Type",
+            "application/pdf"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${certificateNumber}-QR.pdf"`
+        );
+
+        doc.pipe(res);
+
+        doc
+            .fontSize(22)
+            .text(
+                "Leadership & Innovation Academy",
+                {
+                    align: "center"
+                }
+            );
+
+        doc.moveDown();
+
+        doc
+            .fontSize(16)
+            .text(
+                "Certificate Verification QR Code",
+                {
+                    align: "center"
+                }
+            );
+
+        doc.moveDown(2);
+
+        doc
+            .fontSize(14)
+            .text(
+                `Recipient: ${certificate.name}`,
+                {
+                    align: "center"
+                }
+            );
+
+        doc.moveDown();
+
+        doc
+            .fontSize(14)
+            .text(
+                `Certificate Number: ${certificate.certificate_number}`,
+                {
+                    align: "center"
+                }
+            );
+
+        doc.moveDown(2);
+
+        doc.image(
+            qrBuffer,
+            155,
+            260,
+            {
+                width: 300
+            }
+        );
+
+        doc.moveDown(18);
+
+        doc
+            .fontSize(12)
+            .text(
+                "Scan this QR code to verify this certificate.",
+                {
+                    align: "center"
+                }
+            );
+
+        doc.end();
+
+    } catch (error) {
+
+        console.error(
+            "QR PDF generation failed:",
+            error
+        );
+
+        res.status(500).send(
+            "Unable to generate QR PDF."
+        );
+
+    }
+
+});
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
