@@ -1,6 +1,119 @@
+require("dotenv").config();
+
 const express = require("express");
+const { Pool } = require("pg");
+
+const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+async function generateCertificateNumber() {
+    const year = new Date().getFullYear();
+
+    while (true) {
+        const randomNumber = Math.floor(1000 + Math.random() * 9000);
+        const certificateNumber = `LIA-${year}-${randomNumber}`;
+
+        const result = await pool.query(
+            "SELECT id FROM \"LIA certificate verification\" WHERE certificate_number = $1",
+            [certificateNumber]
+        );
+
+        if (result.rows.length === 0) {
+            return certificateNumber;
+        }
+    }
+}
+async function createCertificate(name, course, startDate, endDate) {
+    const certificateNumber = await generateCertificateNumber();
+
+    const result = await pool.query(
+        `INSERT INTO "LIA certificate verification"
+        (certificate_number, name, "course/programme", "programme_start_date", "Date_issued")
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *`,
+        [
+            certificateNumber,
+            name,
+            course,
+            startDate,
+            endDate
+        ]
+    );
+
+    return result.rows[0];
+}
+
+pool.query("SELECT NOW()", (err, result) => {
+    if (err) {
+        console.error("Database connection failed:", err);
+    } else {
+        console.log("Database connected successfully!");
+    }
+});
 
 const app = express();
+app.use(express.json());
+app.post("/admin/create-certificate", async (req, res) => {
+    try {
+        const { name, course, startDate, endDate } = req.body;
+
+        const certificate = await createCertificate(
+            name,
+            course,
+            startDate,
+            endDate
+        );
+
+        res.json({
+            success: true,
+            certificate: certificate
+        });
+
+    } catch (error) {
+        console.error("Certificate creation failed:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to create certificate."
+        });
+    }
+});
+app.post("/admin/create-certificate", async (req, res) => {
+    try {
+        const { name, course, startDate, endDate } = req.body;
+
+        const certificate = await createCertificate(
+            name,
+            course,
+            startDate,
+            endDate
+        );
+
+        res.json({
+            success: true,
+            certificate: certificate
+        });
+
+    } catch (error) {
+        console.error("Certificate creation failed:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to create certificate."
+        });
+    }
+});
+app.get("/admin", (req, res) => {
+    res.sendFile(__dirname + "/admin.html");
+});
 const PORT = 3000;
 
 // Sample certificate
@@ -373,13 +486,17 @@ app.get("/", (req, res) => {
 });
 
 // Certificate verification
-app.get("/verify", (req, res) => {
+app.get("/verify", async (req, res) => {
 
     const certificateNumber = req.query.certificateNumber;
 
-    const certificate = certificates.find(
-        cert => cert.certificateNumber === certificateNumber
-    );
+    const result = await pool.query(
+    `SELECT * FROM "LIA certificate verification"
+     WHERE certificate_number = $1`,
+    [certificateNumber]
+);
+
+const certificate = result.rows[0];
 
     if (certificate) {
         res.send(`
@@ -595,7 +712,7 @@ app.get("/verify", (req, res) => {
                                 </div>
 
                                 <div class="value">
-                                    ${certificate.certificateNumber}
+                                    ${certificate.certificate_number}
                                 </div>
 
                             </div>
@@ -621,7 +738,7 @@ app.get("/verify", (req, res) => {
                                 </div>
 
                                 <div class="value">
-                                    ${certificate.course}
+                                    ${certificate["course/programme"]}
                                 </div>
 
                             </div>
@@ -634,7 +751,7 @@ app.get("/verify", (req, res) => {
                                 </div>
 
                                 <div class="value">
-                                    ${certificate.dateIssued}
+                                    ${certificate.Date_issued}
                                 </div>
 
                             </div>
@@ -753,9 +870,13 @@ app.get("/qrcode/:certificateNumber", async (req, res) => {
 
     const certificateNumber = req.params.certificateNumber;
 
-    const certificate = certificates.find(
-        cert => cert.certificateNumber === certificateNumber
-    );
+    const result = await pool.query(
+    `SELECT * FROM "LIA certificate verification"
+     WHERE certificate_number = $1`,
+    [certificateNumber]
+);
+
+const certificate = result.rows[0];
 
     if (!certificate) {
         return res.send(`
@@ -793,7 +914,7 @@ app.get("/qrcode/:certificateNumber", async (req, res) => {
 
                 <p>
                     Certificate Number:
-                    <strong>${certificate.certificateNumber}</strong>
+                    <strong>${certificate.certificate_number}</strong>
                 </p>
 
                 <img
@@ -801,6 +922,22 @@ app.get("/qrcode/:certificateNumber", async (req, res) => {
                     alt="Certificate QR Code"
                     width="300"
                 >
+            <a
+                href="${qrCode}"
+                download="${certificate.certificate_number}-QR.png"
+                style="
+                    display:inline-block;
+                    margin-top:20px;
+                    padding:12px 20px;
+                    background:#0b6b3a;
+                    color:white;
+                    text-decoration:none;
+                    border-radius:8px;
+                    font-weight:bold;
+                "
+            >
+                Download QR Code
+            </a>
 
                 <p>
                     Scan this QR code to verify the certificate.
@@ -820,6 +957,7 @@ app.get("/qrcode/:certificateNumber", async (req, res) => {
     }
 
 });
+
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>LIA Admin - Generate QR Code</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f8f5;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #0b6b3a;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #0b6b3a;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #09582f;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>LIA QR Generator</h1>
+
+        <form>
+
+            <label for="name">Participant Name</label>
+
+            <input
+                type="text"
+                id="name"
+                placeholder="Enter participant name"
+                required
+            >
+
+
+            <label for="course">Course / Programme</label>
+
+            <input
+                type="text"
+                id="course"
+                placeholder="Enter course or programme"
+                required
+            >
+
+
+           <label for="
+           rtDate">Programme Start Date</label>
+
+                <input
+                    type="date"
+                    id="startDate"
+                    required
+                >
+
+
+            <label for="endDate">Programme End Date</label>
+
+        <input
+            type="date"
+            id="endDate"
+            required
+        >
+
+            <button type="submit">
+                Generate QR Code
+            </button>
+
+        </form>
+
+    </div>
+
+    <script>
+    const form = document.querySelector("form");
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const name = document.getElementById("name").value;
+        const course = document.getElementById("course").value;
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        const response = await fetch("/admin/create-certificate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name,
+                course,
+                startDate,
+                endDate
+            })
+        });
+
+        const result = await response.json();
+        alert("Certificate created: " + result.certificate.certificate_number);
+
+       const qrResponse = await fetch(
+    "/qrcode/" + result.certificate.certificate_number
+);
+
+const qrHTML = await qrResponse.text();
+
+document.body.innerHTML += qrHTML;
+    });
+</script>
+
+</body>
+</html>
